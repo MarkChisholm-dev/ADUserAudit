@@ -88,7 +88,7 @@ function Get-DomainPasswordPolicy {
     }
 }
 
-function Get-ScopedAdUsers {
+function Get-ScopedADUsers {
     <#
     .SYNOPSIS
     Reads user objects and required properties from AD.
@@ -162,7 +162,7 @@ function Invoke-StaleAccountAudit {
     return @($results)
 }
 
-function Invoke-DisabledUsersWithGroupAudit {
+function Invoke-DisabledUsersWithGroupADAudit {
     <#
     .SYNOPSIS
     Finds disabled accounts that still have direct AD group memberships.
@@ -304,17 +304,18 @@ function Write-AuditSection {
         [string[]]$Columns
     )
 
-    Write-Host "`n=== $Title ===" -ForegroundColor Cyan
+    Write-Output ""
+    Write-Output "=== $Title ==="
 
     if (-not $Rows -or $Rows.Count -eq 0) {
-        Write-Host 'No results.' -ForegroundColor Green
+        Write-Output 'No results.'
         return
     }
 
     $Rows | Select-Object $Columns | Format-Table -AutoSize
 }
 
-function Export-AuditCsv {
+function Export-AuditCSV {
     <#
     .SYNOPSIS
     Exports all audit rows to a single CSV for downstream reporting.
@@ -329,7 +330,8 @@ function Export-AuditCsv {
 
     try {
         $Rows | Export-Csv -Path $Path -NoTypeInformation -Encoding UTF8
-        Write-Host "`nCSV exported: $Path" -ForegroundColor Yellow
+        Write-Output ""
+        Write-Output "CSV exported: $Path"
     }
     catch {
         Write-Warning "Failed to export CSV to $Path. $($_.Exception.Message)"
@@ -346,10 +348,10 @@ function Start-ADUserAudit {
         return
     }
 
-    Write-Host 'Starting AD user audit (read-only)...' -ForegroundColor Yellow
+    Write-Output 'Starting AD user audit (read-only)...'
 
     try {
-        $users = Get-ScopedAdUsers -ScopeSearchBase $SearchBase
+        $users = Get-ScopedADUsers -ScopeSearchBase $SearchBase
     }
     catch {
         Write-Error $_.Exception.Message
@@ -364,7 +366,7 @@ function Start-ADUserAudit {
     $passwordPolicy = Get-DomainPasswordPolicy
 
     $staleResults = Invoke-StaleAccountAudit -Users $users -ThresholdDays $StaleDays
-    $disabledInGroupsResults = Invoke-DisabledUsersWithGroupAudit -Users $users
+    $disabledInGroupsResults = Invoke-DisabledUsersWithGroupADAudit -Users $users
     $passwordResults = Invoke-PasswordExpiryAudit -Users $users -DomainPolicy $passwordPolicy -NearExpiryDays $PasswordExpiryDays
     $lastLogonResults = Invoke-LastLogonAudit -Users $users
 
@@ -400,10 +402,11 @@ function Start-ADUserAudit {
     )
 
     $allResults = @($staleResults + $disabledInGroupsResults + $passwordResults + $lastLogonResults)
-    Export-AuditCsv -Rows $allResults -Path $CsvPath
+    Export-AuditCSV -Rows $allResults -Path $CsvPath
 
-    Write-Host "`nAudit complete. Total rows exported: $($allResults.Count)" -ForegroundColor Green
-    Write-Host 'No changes were made to Active Directory.' -ForegroundColor Green
+    Write-Output ""
+    Write-Output "Audit complete. Total rows exported: $($allResults.Count)"
+    Write-Output 'No changes were made to Active Directory.'
 }
 
 Start-ADUserAudit
