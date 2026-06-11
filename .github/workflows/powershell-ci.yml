@@ -25,7 +25,9 @@ jobs:
         run: |
           $results = Invoke-ScriptAnalyzer -Path ./ADUserAudit.ps1 -Recurse
           if ($results) {
-            $results | Format-Table -AutoSize
+            $results |
+              Select-Object RuleName, Severity, ScriptName, Line, Message |
+              Format-Table -AutoSize
             throw "PSScriptAnalyzer found $($results.Count) issue(s)."
           }
 

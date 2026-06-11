@@ -88,7 +88,7 @@ function Get-DomainPasswordPolicy {
     }
 }
 
-function Get-ScopedADUsers {
+function Get-ScopedADUser {
     <#
     .SYNOPSIS
     Reads user objects and required properties from AD.
@@ -338,11 +338,24 @@ function Export-AuditCSV {
     }
 }
 
-function Start-ADUserAudit {
+function Invoke-ADUserAudit {
     <#
     .SYNOPSIS
     Main entry point that orchestrates all audits and output.
     #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$StaleDays,
+
+        [Parameter(Mandatory = $true)]
+        [int]$PasswordExpiryDays,
+
+        [Parameter(Mandatory = $false)]
+        [string]$SearchBase,
+
+        [Parameter(Mandatory = $true)]
+        [string]$CsvPath
+    )
 
     if (-not (Test-ActiveDirectoryModule)) {
         return
@@ -351,7 +364,7 @@ function Start-ADUserAudit {
     Write-Output 'Starting AD user audit (read-only)...'
 
     try {
-        $users = Get-ScopedADUsers -ScopeSearchBase $SearchBase
+        $users = Get-ScopedADUser -ScopeSearchBase $SearchBase
     }
     catch {
         Write-Error $_.Exception.Message
@@ -409,4 +422,4 @@ function Start-ADUserAudit {
     Write-Output 'No changes were made to Active Directory.'
 }
 
-Start-ADUserAudit
+Invoke-ADUserAudit -StaleDays $StaleDays -PasswordExpiryDays $PasswordExpiryDays -SearchBase $SearchBase -CsvPath $CsvPath
