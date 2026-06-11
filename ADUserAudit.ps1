@@ -215,18 +215,18 @@ function Invoke-PasswordExpiryAudit {
         [object[]]$Users,
 
         [Parameter(Mandatory = $false)]
-        [object]$PasswordPolicy,
+        [object]$DomainPasswordPolicy,
 
         [Parameter(Mandatory = $true)]
         [int]$NearExpiryDays
     )
 
-    if (-not $PasswordPolicy -or -not $PasswordPolicy.MaxPasswordAge -or $PasswordPolicy.MaxPasswordAge.Ticks -eq 0) {
+    if (-not $DomainPasswordPolicy -or -not $DomainPasswordPolicy.MaxPasswordAge -or $DomainPasswordPolicy.MaxPasswordAge.Ticks -eq 0) {
         Write-Warning 'Password policy is missing or does not enforce expiry. Skipping password expiry audit.'
         return @()
     }
 
-    $maxPasswordAge = $PasswordPolicy.MaxPasswordAge
+    $maxPasswordAge = $DomainPasswordPolicy.MaxPasswordAge
     $now = Get-Date
 
     $results = foreach ($user in $Users) {
@@ -365,7 +365,7 @@ function Start-ADUserAudit {
 
     $staleResults = Invoke-StaleAccountAudit -Users $users -ThresholdDays $StaleDays
     $disabledInGroupsResults = Invoke-DisabledUsersWithGroupAudit -Users $users
-    $passwordResults = Invoke-PasswordExpiryAudit -Users $users -PasswordPolicy $passwordPolicy -NearExpiryDays $PasswordExpiryDays
+    $passwordResults = Invoke-PasswordExpiryAudit -Users $users -DomainPasswordPolicy $passwordPolicy -NearExpiryDays $PasswordExpiryDays
     $lastLogonResults = Invoke-LastLogonAudit -Users $users
 
     Write-AuditSection -Title "Stale Accounts (>$StaleDays days)" -Rows $staleResults -Columns @(
